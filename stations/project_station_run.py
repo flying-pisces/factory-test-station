@@ -4,7 +4,8 @@ import os
 import time
 
 import station_config
-import test_station.test_station_project_station as test_station
+# Use simple implementations that work reliably
+import simple_console_test
 
 # Import cleanup utilities for process management
 try:
@@ -69,13 +70,7 @@ def main():
     if force_console:
         print("Starting console mode...")
         try:
-            import console_test_runner
-            runner = console_test_runner.ConsoleTestRunner('project_station')
-            if runner.initialize():
-                runner.interactive_mode()
-            else:
-                print("Failed to initialize console runner")
-                sys.exit(1)
+            simple_console_test.interactive_mode()
         except Exception as e:
             print(f"Console mode failed: {e}")
             sys.exit(1)
@@ -84,13 +79,7 @@ def main():
     # Default to console mode (as requested)
     print("Starting console mode (default)...")
     try:
-        import console_test_runner
-        runner = console_test_runner.ConsoleTestRunner('project_station')
-        if runner.initialize():
-            runner.interactive_mode()
-        else:
-            print("Failed to initialize console runner")
-            sys.exit(1)
+        simple_console_test.interactive_mode()
     except Exception as e:
         print(f"Console mode failed: {e}")
         # Try tkinter GUI as fallback if console fails

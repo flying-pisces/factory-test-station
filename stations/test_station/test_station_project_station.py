@@ -1,5 +1,16 @@
-import hardware_station_common.test_station.test_station as test_station
-import test_station.test_fixture.test_fixture_project_station as test_fixture_project_station
+import sys
+import os
+# Add common module to Python path
+common_path = os.path.join(os.path.dirname(__file__), '..', '..', 'common')
+if common_path not in sys.path:
+    sys.path.insert(0, common_path)
+# Add stations module to Python path  
+stations_path = os.path.join(os.path.dirname(__file__), '..', '..')
+if stations_path not in sys.path:
+    sys.path.insert(0, stations_path)
+    
+from test_station.test_station import TestStation
+from stations.fixture.test_fixture_project_station import projectstationFixture
 # Always use console-based messaging to avoid popups
 class gui_utils:
     class messagebox:
@@ -16,7 +27,7 @@ class gui_utils:
         def askyesno(title, msg):
             print(f"PROMPT ({title}): {msg} - Automatically answering YES")
             return True
-import test_station.dut as dut
+from stations.DUT.dut import projectDut
 import time
 import os
 
@@ -24,14 +35,14 @@ class projectstationError(Exception):
     pass
 
 
-class projectstationStation(test_station.TestStation):
+class projectstationStation(TestStation):
     """
         projectstation Station
     """
 
     def __init__(self, station_config, operator_interface):
-        test_station.TestStation.__init__(self, station_config, operator_interface)
-        self._fixture = test_fixture_project_station.projectstationFixture(station_config, operator_interface)
+        TestStation.__init__(self, station_config, operator_interface)
+        self._fixture = projectstationFixture(station_config, operator_interface)
         self._overall_errorcode = ''
         self._first_failed_test_resulta = None
 
@@ -53,7 +64,7 @@ class projectstationStation(test_station.TestStation):
         self._overall_result = False
         self._overall_errorcode = ''
 
-        the_unit = dut.projectDut(serial_number, self._station_config, self._operator_interface)
+        the_unit = projectDut(serial_number, self._station_config, self._operator_interface)
         self._operator_interface.print_to_console("Testing Unit %s\n" % the_unit.serial_number)
         try:
 
@@ -106,4 +117,4 @@ class projectstationStation(test_station.TestStation):
 
         self._operator_interface.print_to_console('Unable to get start signal from fixture.')
         self._operator_interface.prompt('', 'SystemButtonFace')
-        raise test_station.TestStationSerialNumberError('Fail to Wait for press dual-btn ...')
+        raise Exception('Fail to Wait for press dual-btn ...')
