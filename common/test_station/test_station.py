@@ -3,10 +3,15 @@ __author__ = 'chuckyin'
 # pylint: disable=F0401
 # pylint: disable=R0921
 
+import sys
 import os
-from .test_log import test_log
-import hardware_station_common.utils.serial_number as serial_number
-import hardware_station_common.utils as utils  # pylint: disable=F0401
+# Import test_log from the log module
+log_path = os.path.join(os.path.dirname(__file__), '..', '..', 'log')
+if log_path not in sys.path:
+    sys.path.insert(0, log_path)
+from test_log import test_log
+from .. import utils
+from ..utils import serial_number
 
 
 class TestStationError(Exception):

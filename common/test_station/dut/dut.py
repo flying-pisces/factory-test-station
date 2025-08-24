@@ -3,7 +3,7 @@ __author__ = 'chuckyin'
 # pylint: disable=R0923
 # pylint: disable=R0921
 
-import hardware_station_common.utils as utils
+from ... import utils
 
 class DUT(object):
     """

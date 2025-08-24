@@ -6,8 +6,19 @@ from datetime import timedelta
 import re
 import os
 import sys
-import hardware_station_common.utils as utils  # pylint: disable=F0401
-import hardware_station_common.test_station.test_log.shop_floor_interface as shop_floor_interface # pylint: disable=W0403
+import sys
+import os
+# Add common utils to path
+common_utils_path = os.path.join(os.path.dirname(__file__), '..', '..', 'common')
+if common_utils_path not in sys.path:
+    sys.path.insert(0, common_utils_path)
+import utils
+# Add log io_utils to path  
+log_utils_path = os.path.join(os.path.dirname(__file__), '..')
+if log_utils_path not in sys.path:
+    sys.path.insert(0, log_utils_path)
+import io_utils
+from .shop_floor_interface import shop_floor
 import collections
 import importlib
 
@@ -89,7 +100,7 @@ class TestRecord(object):
         if station_id is not None:
             tt_string = "%s_" % station_id
 
-        self._unique_instance_id = ("%s_%s%s" % (uut_sn, tt_string, utils.io_utils.timestamp(self._start_time)))
+        self._unique_instance_id = ("%s_%s%s" % (uut_sn, tt_string, io_utils.timestamp(self._start_time)))
         self._filename = ("%s_x.log" % self._unique_instance_id)  # _x indicates Test not finished yet.
                                                                 #  Will be converted to 'p' or 'f' once overall
                                                                 # test result is known.
@@ -98,7 +109,7 @@ class TestRecord(object):
         self._overalls_are_uptodate = False  # flag to track whether or not results have been added since the last time
                                             # the overall result (or error code) was queried.
 
-        self._shopfloor = shop_floor_interface.shop_floor.ShopFloor()
+        self._shopfloor = shop_floor.ShopFloor()
 
     def set_user_metadata_dict(self, meta):
         if self._user_meta_data_dict is None:
@@ -273,8 +284,8 @@ class TestRecord(object):
         else:
             csv_line = "%s, %s, %s, %s, %s, %d" % (self._uut_sn,
                                                    self._station_id,
-                                                   utils.io_utils.timestamp(self._start_time),
-                                                   utils.io_utils.timestamp(self._end_time),
+                                                   io_utils.timestamp(self._start_time),
+                                                   io_utils.timestamp(self._end_time),
                                                    self.get_pass_fail_string(),
                                                    self.get_overall_error_code())
 
@@ -317,8 +328,8 @@ class TestRecord(object):
         header_string = print_csv_headers()
         header_string += format_as_testresult_string("UUT_Serial_Number", self._uut_sn)
         header_string += format_as_testresult_string("Station_ID", self._station_id)
-        header_string += format_as_testresult_string("Start_Time", utils.io_utils.timestamp(self._start_time))
-        header_string += format_as_testresult_string("End_Time", utils.io_utils.timestamp(self._end_time))
+        header_string += format_as_testresult_string("Start_Time", io_utils.timestamp(self._start_time))
+        header_string += format_as_testresult_string("End_Time", io_utils.timestamp(self._end_time))
         header_string += format_as_testresult_string("Overall_Result", self.get_pass_fail_string())
         header_string += format_as_testresult_string("Overall_ErrorCode", self._overall_error_code)
         user_dictionary = self.get_user_metadata_dict()
