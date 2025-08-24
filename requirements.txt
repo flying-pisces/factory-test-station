@@ -1,0 +1,39 @@
+# Factory Test Station Dependencies
+
+# Core dependencies - minimal and stable
+psutil>=5.8.0              # System and process utilities
+lxml>=4.6.0               # XML processing for configuration
+requests>=2.25.0          # HTTP client for shop floor integration
+
+# Cross-platform GUI support
+tkinter-dev>=0.1.0; sys_platform != "win32"  # TKinter development headers (Linux/Mac)
+
+# Web GUI support (optional)
+flask>=2.0.0              # Web framework for browser GUI
+flask-socketio>=5.0.0     # Real-time web communication
+
+# Serial communication
+pyserial>=3.5             # Serial port communication
+
+# Configuration and data formats
+pyyaml>=5.4.0            # YAML configuration support
+configparser>=5.0.0      # INI configuration support
+
+# Logging and monitoring
+colorama>=0.4.4          # Cross-platform colored terminal text
+
+# Windows-specific dependencies
+pywin32>=227; sys_platform == "win32"        # Windows API access
+pythonnet>=2.5.2; sys_platform == "win32"   # .NET interop for WPF GUI
+
+# Development and testing dependencies (use pip install -e .[dev])
+# pytest>=6.0
+# pytest-cov>=2.10
+# black>=21.0
+# flake8>=3.8
+# mypy>=0.812
+
+# Optional scientific dependencies for advanced testing
+# numpy>=1.20.0
+# matplotlib>=3.3.0
+# pillow>=8.0.0
