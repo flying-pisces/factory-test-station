@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.10.12
+Created-By: 17.0.3+7 (Eclipse Adoptium)
+Main-Class: com.jaamsim.ui.GUIFrame
+
