@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manufacturing Line - Executive Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .executive-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo h1 {
+            color: #3498db;
+            font-size: 2.2rem;
+            font-weight: 300;
+        }
+        
+        .logo .subtitle {
+            color: #95a5a6;
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+        
+        .executive-summary {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+        
+        .summary-metric {
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #2ecc71;
+            display: block;
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            color: #bdc3c7;
+            margin-top: 0.3rem;
+        }
+        
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .kpi-title {
+            font-size: 0.9rem;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+        
+        .kpi-value {
+            font-size: 2.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .kpi-target {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+        
+        .kpi-trend {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+        
+        .trend-up {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        
+        .trend-down {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+        
+        .trend-stable {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+        
+        .dashboard-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        .chart-card {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #ecf0f1;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        
+        .insights-panel {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .insight-item {
+            background: rgba(0,0,0,0.2);
+            padding: 1.2rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .insight-opportunity { border-left-color: #2ecc71; }
+        .insight-risk { border-left-color: #e74c3c; }
+        .insight-achievement { border-left-color: #f39c12; }
+        
+        .insight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        
+        .insight-title {
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+        
+        .insight-priority {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-left: auto;
+        }
+        
+        .priority-high {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+        
+        .priority-medium {
+            background: rgba(243, 156, 18, 0.3);
+            color: #f39c12;
+        }
+        
+        .priority-low {
+            background: rgba(52, 152, 219, 0.3);
+            color: #3498db;
+        }
+        
+        .insight-description {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            margin-bottom: 0.5rem;
+        }
+        
+        .insight-impact {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            font-weight: bold;
+        }
+        
+        .financial-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .financial-card {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            color: white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .financial-revenue {
+            background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+        }
+        
+        .financial-profit {
+            background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+        }
+        
+        .financial-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .controls-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #58d68d 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+        
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .financial-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .executive-summary {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="executive-header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>📊 Executive Manufacturing Dashboard</h1>
+                <div class="subtitle">Strategic Overview & Performance Analytics</div>
+            </div>
+            <div class="executive-summary">
+                <div class="summary-metric">
+                    <span class="summary-value" id="total-revenue">$2.45M</span>
+                    <div class="summary-label">Monthly Revenue</div>
+                </div>
+                <div class="summary-metric">
+                    <span class="summary-value" id="efficiency-score">87.3%</span>
+                    <div class="summary-label">Overall Efficiency</div>
+                </div>
+                <div class="summary-metric">
+                    <span class="summary-value" id="quality-score">98.2%</span>
+                    <div class="summary-label">Quality Score</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="financial-section">
+            <div class="financial-card financial-revenue">
+                <div class="financial-value" id="revenue-value">$2,456,789</div>
+                <div>Monthly Revenue</div>
+                <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    Target: $2,500,000 (98.3%)
+                </div>
+            </div>
+            <div class="financial-card financial-profit">
+                <div class="financial-value" id="profit-margin-value">18.4%</div>
+                <div>Profit Margin</div>
+                <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                    Target: 20.0% (92.0%)
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Overall Efficiency</div>
+                <div class="kpi-value" id="kpi-efficiency">87.3%</div>
+                <div class="kpi-target">Target: 90.0%</div>
+                <span class="kpi-trend trend-up" id="efficiency-trend">↗ Improving</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Quality Score</div>
+                <div class="kpi-value" id="kpi-quality">98.2%</div>
+                <div class="kpi-target">Target: 99.0%</div>
+                <span class="kpi-trend trend-stable" id="quality-trend">→ Stable</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">On-Time Delivery</div>
+                <div class="kpi-value" id="kpi-delivery">94.7%</div>
+                <div class="kpi-target">Target: 95.0%</div>
+                <span class="kpi-trend trend-up" id="delivery-trend">↗ Improving</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Capacity Utilization</div>
+                <div class="kpi-value" id="kpi-capacity">82.1%</div>
+                <div class="kpi-target">Target: 85.0%</div>
+                <span class="kpi-trend trend-up" id="capacity-trend">↗ Improving</span>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <button class="btn btn-primary" onclick="generateReport('financial')">Financial Report</button>
+            <button class="btn btn-primary" onclick="generateReport('operational')">Operational Report</button>
+            <button class="btn btn-success" onclick="requestAnalysis('efficiency_deep_dive')">Deep Dive Analysis</button>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title">Performance Trends</div>
+                    <div class="chart-container">
+                        <canvas id="performance-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Financial Overview</div>
+                    <div class="chart-container">
+                        <canvas id="financial-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="insights-panel">
+                <h2>Strategic Insights</h2>
+                <div id="insights-container">
+                    <!-- Strategic insights will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        
+        // Chart variables
+        let performanceChart = null;
+        let financialChart = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to management dashboard server');
+        });
+        
+        socket.on('executive_data', function(data) {
+            updateExecutiveData(data);
+        });
+        
+        socket.on('executive_data_update', function(data) {
+            updateFinancialMetrics(data.financial_metrics);
+            updateOperationalKPIs(data.operational_kpis);
+            updateCharts(data.trend_analysis);
+        });
+        
+        socket.on('new_strategic_insight', function(insight) {
+            addStrategicInsight(insight);
+        });
+        
+        // Update functions
+        function updateExecutiveData(data) {
+            updateFinancialMetrics(data.financial_metrics);
+            updateOperationalKPIs(data.operational_kpis);
+            updateStrategicInsights(data.strategic_insights);
+            updateCharts(data.trend_analysis);
+        }
+        
+        function updateFinancialMetrics(financial) {
+            document.getElementById('revenue-value').textContent = 
+                '$' + financial.revenue.current.toLocaleString();
+            document.getElementById('profit-margin-value').textContent = 
+                financial.profit_margin.current + '%';
+            document.getElementById('total-revenue').textContent = 
+                '$' + (financial.revenue.current / 1000000).toFixed(2) + 'M';
+        }
+        
+        function updateOperationalKPIs(kpis) {
+            document.getElementById('kpi-efficiency').textContent = kpis.overall_efficiency.current + '%';
+            document.getElementById('kpi-quality').textContent = kpis.quality_score.current + '%';
+            document.getElementById('kpi-delivery').textContent = kpis.on_time_delivery.current + '%';
+            document.getElementById('kpi-capacity').textContent = kpis.capacity_utilization.current + '%';
+            
+            document.getElementById('efficiency-score').textContent = kpis.overall_efficiency.current + '%';
+            document.getElementById('quality-score').textContent = kpis.quality_score.current + '%';
+            
+            // Update trend indicators
+            updateTrendIndicator('efficiency-trend', kpis.overall_efficiency.trend);
+            updateTrendIndicator('quality-trend', kpis.quality_score.trend);
+            updateTrendIndicator('delivery-trend', kpis.on_time_delivery.trend);
+            updateTrendIndicator('capacity-trend', kpis.capacity_utilization.trend);
+        }
+        
+        function updateTrendIndicator(elementId, trend) {
+            const element = document.getElementById(elementId);
+            element.className = element.className.replace(/trend-\w+/g, '');
+            element.classList.add('trend-' + trend);
+            
+            const arrows = { up: '↗', down: '↘', stable: '→' };
+            const text = { up: 'Improving', down: 'Declining', stable: 'Stable' };
+            
+            element.textContent = arrows[trend] + ' ' + text[trend];
+        }
+        
+        function updateStrategicInsights(insights) {
+            const container = document.getElementById('insights-container');
+            container.innerHTML = '';
+            
+            insights.slice(0, 3).forEach(insight => {
+                const insightElement = createInsightElement(insight);
+                container.appendChild(insightElement);
+            });
+        }
+        
+        function addStrategicInsight(insight) {
+            const container = document.getElementById('insights-container');
+            const insightElement = createInsightElement(insight);
+            container.insertBefore(insightElement, container.firstChild);
+            
+            // Keep only 3 insights visible
+            while (container.children.length > 3) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        function createInsightElement(insight) {
+            const insightDiv = document.createElement('div');
+            insightDiv.className = `insight-item insight-${insight.type}`;
+            insightDiv.innerHTML = `
+                <div class="insight-header">
+                    <div class="insight-title">${insight.title}</div>
+                    <span class="insight-priority priority-${insight.priority}">${insight.priority}</span>
+                </div>
+                <div class="insight-description">${insight.description}</div>
+                <div class="insight-impact">${insight.impact}</div>
+            `;
+            return insightDiv;
+        }
+        
+        // Chart functions
+        function initializeCharts() {
+            // Performance trend chart
+            const perfCtx = document.getElementById('performance-chart').getContext('2d');
+            performanceChart = new Chart(perfCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+                    datasets: [
+                        {
+                            label: 'Efficiency (%)',
+                            data: [85.2, 86.1, 86.8, 87.0, 87.3],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Quality (%)',
+                            data: [97.8, 98.1, 98.0, 98.2, 98.2],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            min: 80,
+                            grid: { color: '#34495e' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        x: {
+                            grid: { color: '#34495e' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#ffffff' } }
+                    }
+                }
+            });
+            
+            // Financial chart
+            const finCtx = document.getElementById('financial-chart').getContext('2d');
+            financialChart = new Chart(finCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+                    datasets: [
+                        {
+                            label: 'Revenue ($M)',
+                            data: [2.3, 2.35, 2.41, 2.44, 2.46],
+                            backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                            borderColor: '#3498db',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 2.0,
+                            grid: { color: '#34495e' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        x: {
+                            grid: { color: '#34495e' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#ffffff' } }
+                    }
+                }
+            });
+        }
+        
+        function updateCharts(trendData) {
+            if (performanceChart && trendData.efficiency_trend) {
+                performanceChart.data.datasets[0].data = trendData.efficiency_trend;
+                performanceChart.data.datasets[1].data = trendData.quality_trend;
+                performanceChart.update();
+            }
+            
+            if (financialChart && trendData.revenue_trend) {
+                financialChart.data.datasets[0].data = trendData.revenue_trend;
+                financialChart.update();
+            }
+        }
+        
+        // Control functions
+        function generateReport(reportType) {
+            fetch('/api/reports/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    report_type: reportType,
+                    time_period: 'weekly'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(`${reportType} report generated: ${JSON.stringify(data.summary, null, 2)}`);
+            })
+            .catch(error => console.error('Error generating report:', error));
+        }
+        
+        function requestAnalysis(analysisType) {
+            socket.emit('request_detailed_analysis', {
+                analysis_type: analysisType,
+                time_frame: 'weekly'
+            });
+        }
+        
+        socket.on('detailed_analysis_result', function(analysis) {
+            const insights = analysis.insights.join('\n');
+            const recommendations = analysis.recommendations.join('\n');
+            alert(`Analysis Results:\n\nInsights:\n${insights}\n\nRecommendations:\n${recommendations}`);
+        });
+    </script>
+</body>
+</html>

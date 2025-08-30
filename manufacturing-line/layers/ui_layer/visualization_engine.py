@@ -950,6 +950,90 @@ class VisualizationEngine:
         logging.info(f"Chart {chart_id} removed")
         return True
 
+    async def validate_visualization_engine(self) -> Dict[str, Any]:
+        """Validate visualization engine functionality and performance."""
+        validation_results = {
+            'engine_name': 'VisualizationEngine',
+            'validation_timestamp': datetime.now().isoformat(),
+            'tests': {},
+            'performance_metrics': {},
+            'overall_status': 'unknown'
+        }
+        
+        try:
+            # Test 1: Chart Creation
+            test_chart_config = ChartConfig(
+                chart_id='validation_chart',
+                chart_type=ChartType.LINE,
+                title='Validation Chart',
+                x_axis_label='Time',
+                y_axis_label='Value',
+                width=800,
+                height=400
+            )
+            
+            chart_result = await self.create_chart(test_chart_config)
+            
+            validation_results['tests']['chart_creation'] = {
+                'status': 'pass' if chart_result['success'] else 'fail',
+                'render_time_ms': chart_result.get('render_time_ms', 0),
+                'target_ms': self.render_target_ms,
+                'details': f"Created chart: {chart_result.get('chart_id', 'unknown')}"
+            }
+            
+            # Test 2: Data Update Performance
+            test_data = [
+                {'x': 1, 'y': 10, 'timestamp': datetime.now().isoformat()},
+                {'x': 2, 'y': 20, 'timestamp': datetime.now().isoformat()},
+                {'x': 3, 'y': 15, 'timestamp': datetime.now().isoformat()}
+            ]
+            
+            update_result = await self.update_chart_data('validation_chart', test_data)
+            
+            validation_results['tests']['data_update'] = {
+                'status': 'pass' if update_result['success'] else 'fail',
+                'update_time_ms': update_result.get('update_time_ms', 0),
+                'target_ms': self.render_target_ms,
+                'details': f"Updated chart with {len(test_data)} data points"
+            }
+            
+            # Test 3: KPI Dashboard Creation
+            kpi_config = KPIDashboardConfig(
+                dashboard_id='validation_kpi_dashboard',
+                title='Validation KPI Dashboard',
+                metrics=['efficiency', 'quality', 'throughput'],
+                layout={'type': 'grid', 'columns': 3},
+                refresh_interval_ms=1000
+            )
+            
+            kpi_result = await self.create_kpi_dashboard(kpi_config)
+            
+            validation_results['tests']['kpi_dashboard'] = {
+                'status': 'pass' if kpi_result['success'] else 'fail',
+                'creation_time_ms': kpi_result.get('creation_time_ms', 0),
+                'details': f"Created KPI dashboard with {len(kpi_config.metrics)} metrics"
+            }
+            
+            # Performance metrics
+            validation_results['performance_metrics'] = self.get_performance_metrics()
+            
+            # Overall status
+            passed_tests = sum(1 for test in validation_results['tests'].values() 
+                             if test['status'] == 'pass')
+            total_tests = len(validation_results['tests'])
+            
+            validation_results['overall_status'] = 'pass' if passed_tests == total_tests else 'fail'
+            validation_results['test_summary'] = f"{passed_tests}/{total_tests} tests passed"
+            
+            self.logger.info(f"Visualization engine validation completed: {validation_results['test_summary']}")
+            
+        except Exception as e:
+            validation_results['overall_status'] = 'error'
+            validation_results['error'] = str(e)
+            self.logger.error(f"Visualization engine validation failed: {e}")
+        
+        return validation_results
+
     def __str__(self) -> str:
         return f"VisualizationEngine(render_target={self.render_target_ms}ms, active_charts={len(self.active_charts)})"
 

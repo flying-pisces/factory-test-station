@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Manufacturing Line Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+            color: #ffffff;
+            line-height: 1.4;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        .mobile-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            padding: 1rem;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-text {
+            font-size: 0.8rem;
+            color: #bdc3c7;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .quick-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            touch-action: manipulation;
+        }
+        
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-efficiency { color: #2ecc71; }
+        .metric-quality { color: #3498db; }
+        .metric-output { color: #f39c12; }
+        .metric-alerts { color: #e74c3c; }
+        
+        .section-header {
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ecf0f1;
+            background: rgba(0,0,0,0.3);
+            border-left: 4px solid #3498db;
+        }
+        
+        .alerts-section {
+            padding: 0 1rem;
+        }
+        
+        .alert-item {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            margin: 0.8rem 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-left: 4px solid #f39c12;
+            overflow: hidden;
+        }
+        
+        .alert-warning { border-left-color: #f39c12; }
+        .alert-error { border-left-color: #e74c3c; }
+        .alert-info { border-left-color: #3498db; }
+        
+        .alert-content {
+            padding: 1rem;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        
+        .alert-title {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        
+        .alert-time {
+            font-size: 0.7rem;
+            color: #95a5a6;
+            text-align: right;
+        }
+        
+        .alert-message {
+            font-size: 0.85rem;
+            color: #bdc3c7;
+            margin-bottom: 0.8rem;
+        }
+        
+        .alert-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            padding: 1rem;
+        }
+        
+        .equipment-card {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            touch-action: manipulation;
+        }
+        
+        .equipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .equipment-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .status-running { background: #2ecc71; }
+        .status-stopped { background: #e74c3c; }
+        .status-paused { background: #f39c12; }
+        .status-maintenance { background: #9b59b6; }
+        
+        .equipment-metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+        }
+        
+        .equipment-metric {
+            text-align: center;
+        }
+        
+        .equipment-metric-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .equipment-metric-label {
+            font-size: 0.7rem;
+            color: #95a5a6;
+        }
+        
+        .maintenance-section {
+            padding: 1rem;
+        }
+        
+        .maintenance-item {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            margin: 0.8rem 0;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-left: 4px solid #2ecc71;
+        }
+        
+        .maintenance-overdue { border-left-color: #e74c3c; }
+        .maintenance-pending { border-left-color: #f39c12; }
+        .maintenance-completed { border-left-color: #2ecc71; }
+        
+        .maintenance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        
+        .maintenance-task {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .maintenance-priority {
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .priority-high {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+        
+        .priority-medium {
+            background: rgba(243, 156, 18, 0.3);
+            color: #f39c12;
+        }
+        
+        .priority-low {
+            background: rgba(52, 152, 219, 0.3);
+            color: #3498db;
+        }
+        
+        .maintenance-details {
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-bottom: 0.8rem;
+        }
+        
+        .btn {
+            padding: 0.7rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+            min-height: 44px; /* iOS touch target */
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #58d68d 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #f7dc6f 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #f1948a 100%);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            min-height: 36px;
+        }
+        
+        .emergency-section {
+            padding: 1rem;
+            border-top: 2px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+        
+        .emergency-button {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+            touch-action: manipulation;
+        }
+        
+        .emergency-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            display: flex;
+            justify-content: space-around;
+            padding: 0.8rem;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.3);
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            color: #95a5a6;
+            font-size: 0.7rem;
+            touch-action: manipulation;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.active {
+            color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+        
+        .content-container {
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+        
+        .offline-indicator {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 200;
+            display: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            display: none;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tablet optimizations */
+        @media (min-width: 768px) {
+            .quick-metrics {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .equipment-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .mobile-header {
+                padding: 1.5rem;
+            }
+            
+            .logo {
+                font-size: 1.5rem;
+            }
+            
+            .bottom-nav {
+                position: static;
+                box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+            }
+            
+            .content-container {
+                padding-bottom: 0;
+            }
+        }
+        
+        /* Dark mode specific adjustments */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #0f0f0f 0%, #1a2332 100%);
+            }
+        }
+        
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offline-indicator">
+        📡 Offline Mode
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Header -->
+    <div class="mobile-header">
+        <div class="header-content">
+            <div class="logo">🏭 Manufacturing</div>
+            <div class="connection-status">
+                <div class="status-dot" id="status-dot"></div>
+                <div class="status-text" id="status-text">Connected</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-container">
+        <!-- Quick Metrics -->
+        <div class="quick-metrics">
+            <div class="metric-card">
+                <div class="metric-value metric-efficiency" id="efficiency-value">87.3%</div>
+                <div class="metric-label">Efficiency</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value metric-quality" id="quality-value">98.2%</div>
+                <div class="metric-label">Quality</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value metric-output" id="output-value">85</div>
+                <div class="metric-label">Output</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value metric-alerts" id="alerts-value">2</div>
+                <div class="metric-label">Alerts</div>
+            </div>
+        </div>
+
+        <!-- Critical Alerts -->
+        <div class="section-header">🚨 Critical Alerts</div>
+        <div class="alerts-section" id="alerts-container">
+            <!-- Alerts will be populated dynamically -->
+        </div>
+
+        <!-- Equipment Overview -->
+        <div class="section-header">⚙️ Equipment Status</div>
+        <div class="equipment-grid" id="equipment-grid">
+            <!-- Equipment cards will be populated dynamically -->
+        </div>
+
+        <!-- Maintenance Tasks -->
+        <div class="section-header">🔧 Maintenance Tasks</div>
+        <div class="maintenance-section" id="maintenance-container">
+            <!-- Maintenance tasks will be populated dynamically -->
+        </div>
+
+        <!-- Emergency Controls -->
+        <div class="section-header">🚨 Emergency Controls</div>
+        <div class="emergency-section">
+            <button class="emergency-button" onclick="emergencyStop()">
+                EMERGENCY STOP ALL
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showSection('dashboard')">
+            <div class="nav-icon">📊</div>
+            <div>Dashboard</div>
+        </div>
+        <div class="nav-item" onclick="showSection('equipment')">
+            <div class="nav-icon">⚙️</div>
+            <div>Equipment</div>
+        </div>
+        <div class="nav-item" onclick="showSection('alerts')">
+            <div class="nav-icon">🚨</div>
+            <div>Alerts</div>
+        </div>
+        <div class="nav-item" onclick="showSection('maintenance')">
+            <div class="nav-icon">🔧</div>
+            <div>Maintenance</div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        
+        // Mobile interface state
+        let isOnline = true;
+        let offlineActions = [];
+        let currentSection = 'dashboard';
+        
+        // Initialize mobile interface
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add touch event listeners
+            addTouchEventListeners();
+            
+            // Initialize offline support
+            initializeOfflineSupport();
+            
+            // Request initial data
+            socket.emit('touch_interaction', {type: 'app_launch', element: 'mobile_interface'});
+        });
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to mobile interface server');
+            setConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from mobile interface server');
+            setConnectionStatus(false);
+        });
+        
+        socket.on('mobile_data', function(data) {
+            updateMobileInterface(data);
+        });
+        
+        socket.on('mobile_data_update', function(data) {
+            updateQuickMetrics(data.quick_metrics);
+            updateEquipmentOverview(data.equipment_overview);
+            updateMaintenanceTasks(data.maintenance_tasks);
+        });
+        
+        socket.on('new_mobile_alert', function(alert) {
+            addNewAlert(alert);
+            updateAlertCount();
+        });
+        
+        // Connection status management
+        function setConnectionStatus(connected) {
+            isOnline = connected;
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const offlineIndicator = document.getElementById('offline-indicator');
+            
+            if (connected) {
+                statusDot.style.background = '#2ecc71';
+                statusText.textContent = 'Connected';
+                offlineIndicator.style.display = 'none';
+                
+                // Sync offline actions if any
+                if (offlineActions.length > 0) {
+                    syncOfflineActions();
+                }
+            } else {
+                statusDot.style.background = '#e74c3c';
+                statusText.textContent = 'Offline';
+                offlineIndicator.style.display = 'block';
+            }
+        }
+        
+        // Update functions
+        function updateMobileInterface(data) {
+            updateQuickMetrics(data.quick_metrics);
+            updateEquipmentOverview(data.equipment_overview);
+            updateCriticalAlerts(data.critical_alerts);
+            updateMaintenanceTasks(data.maintenance_tasks);
+        }
+        
+        function updateQuickMetrics(metrics) {
+            document.getElementById('efficiency-value').textContent = metrics.efficiency.toFixed(1) + '%';
+            document.getElementById('quality-value').textContent = metrics.quality_score.toFixed(1) + '%';
+            document.getElementById('output-value').textContent = Math.round(metrics.current_output);
+            document.getElementById('alerts-value').textContent = metrics.alert_count;
+        }
+        
+        function updateEquipmentOverview(equipment) {
+            const container = document.getElementById('equipment-grid');
+            container.innerHTML = '';
+            
+            Object.values(equipment).forEach(eq => {
+                const card = createEquipmentCard(eq);
+                container.appendChild(card);
+            });
+        }
+        
+        function createEquipmentCard(equipment) {
+            const card = document.createElement('div');
+            card.className = 'equipment-card';
+            card.innerHTML = `
+                <div class="equipment-header">
+                    <div class="equipment-name">${equipment.name}</div>
+                    <div class="status-indicator status-${equipment.status}"></div>
+                </div>
+                <div class="equipment-metrics">
+                    <div class="equipment-metric">
+                        <div class="equipment-metric-value">${equipment.health_score.toFixed(0)}%</div>
+                        <div class="equipment-metric-label">Health</div>
+                    </div>
+                    <div class="equipment-metric">
+                        <div class="equipment-metric-value">${equipment.temperature}°C</div>
+                        <div class="equipment-metric-label">Temp</div>
+                    </div>
+                </div>
+            `;
+            
+            // Add touch handler
+            card.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                socket.emit('touch_interaction', {type: 'equipment_tap', element: equipment.id});
+                socket.emit('request_equipment_details', {equipment_id: equipment.id});
+            });
+            
+            return card;
+        }
+        
+        function updateCriticalAlerts(alerts) {
+            const container = document.getElementById('alerts-container');
+            container.innerHTML = '';
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #95a5a6;">No active alerts</div>';
+                return;
+            }
+            
+            alerts.forEach(alert => {
+                const alertElement = createAlertElement(alert);
+                container.appendChild(alertElement);
+            });
+        }
+        
+        function addNewAlert(alert) {
+            const container = document.getElementById('alerts-container');
+            
+            // Remove "no alerts" message if present
+            if (container.innerHTML.includes('No active alerts')) {
+                container.innerHTML = '';
+            }
+            
+            const alertElement = createAlertElement(alert);
+            container.insertBefore(alertElement, container.firstChild);
+        }
+        
+        function createAlertElement(alert) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert-item alert-${alert.type}`;
+            
+            const timeStr = new Date(alert.timestamp).toLocaleTimeString();
+            
+            alertDiv.innerHTML = `
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-time">${timeStr}</div>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                    <div class="alert-actions">
+                        <button class="btn btn-primary btn-small" onclick="acknowledgeAlert('${alert.id}')">
+                            ${alert.acknowledged ? 'Acknowledged' : 'Acknowledge'}
+                        </button>
+                        <button class="btn btn-warning btn-small" onclick="viewAlertDetails('${alert.id}')">
+                            Details
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return alertDiv;
+        }
+        
+        function updateMaintenanceTasks(tasks) {
+            const container = document.getElementById('maintenance-container');
+            container.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #95a5a6;">No maintenance tasks</div>';
+                return;
+            }
+            
+            tasks.forEach(task => {
+                const taskElement = createMaintenanceElement(task);
+                container.appendChild(taskElement);
+            });
+        }
+        
+        function createMaintenanceElement(task) {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = `maintenance-item maintenance-${task.status}`;
+            
+            const dueTime = new Date(task.due_date).toLocaleString();
+            
+            taskDiv.innerHTML = `
+                <div class="maintenance-header">
+                    <div class="maintenance-task">${task.task}</div>
+                    <span class="maintenance-priority priority-${task.priority}">${task.priority}</span>
+                </div>
+                <div class="maintenance-details">
+                    Equipment: ${task.equipment}<br>
+                    Due: ${dueTime}<br>
+                    Est. Time: ${task.estimated_time}
+                </div>
+                <div class="alert-actions">
+                    <button class="btn btn-success btn-small" onclick="completeTask('${task.id}')">
+                        Complete
+                    </button>
+                    <button class="btn btn-warning btn-small" onclick="postponeTask('${task.id}')">
+                        Postpone
+                    </button>
+                </div>
+            `;
+            
+            return taskDiv;
+        }
+        
+        // Action functions
+        function acknowledgeAlert(alertId) {
+            const action = {
+                type: 'acknowledge_alert',
+                data: {alert_id: alertId},
+                timestamp: new Date().toISOString()
+            };
+            
+            if (isOnline) {
+                fetch('/api/quick-action/acknowledge_alert', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(action.data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update UI
+                        const button = event.target;
+                        button.textContent = 'Acknowledged';
+                        button.disabled = true;
+                    }
+                });
+            } else {
+                // Store for offline sync
+                offlineActions.push(action);
+                showOfflineMessage('Alert acknowledgment queued');
+            }
+            
+            socket.emit('touch_interaction', {type: 'alert_acknowledgment', element: alertId});
+        }
+        
+        function completeTask(taskId) {
+            const action = {
+                type: 'update_maintenance_task',
+                data: {
+                    task_id: taskId,
+                    status: 'completed',
+                    notes: 'Completed via mobile interface'
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            if (isOnline) {
+                fetch(`/api/maintenance/${taskId}/update`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({status: 'completed'})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update UI
+                        const taskElement = event.target.closest('.maintenance-item');
+                        taskElement.style.opacity = '0.5';
+                        taskElement.querySelector('.maintenance-task').style.textDecoration = 'line-through';
+                    }
+                });
+            } else {
+                offlineActions.push(action);
+                showOfflineMessage('Task completion queued');
+            }
+            
+            socket.emit('touch_interaction', {type: 'maintenance_updates', element: taskId});
+        }
+        
+        function emergencyStop() {
+            if (confirm('Are you sure you want to initiate EMERGENCY STOP for all equipment?')) {
+                const action = {
+                    type: 'emergency_stop',
+                    data: {equipment_id: 'all'},
+                    timestamp: new Date().toISOString()
+                };
+                
+                showLoading(true);
+                
+                if (isOnline) {
+                    fetch('/api/quick-action/emergency_stop', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(action.data)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        showLoading(false);
+                        if (data.success) {
+                            alert('EMERGENCY STOP ACTIVATED');
+                        }
+                    });
+                } else {
+                    offlineActions.push(action);
+                    showLoading(false);
+                    alert('Emergency stop queued for sync when online');
+                }
+                
+                socket.emit('touch_interaction', {type: 'emergency_stop', element: 'all_equipment'});
+            }
+        }
+        
+        // Navigation functions
+        function showSection(section) {
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
+            
+            currentSection = section;
+            socket.emit('touch_interaction', {type: 'navigation', element: section});
+        }
+        
+        // Utility functions
+        function showLoading(show) {
+            document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+        }
+        
+        function showOfflineMessage(message) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: #34495e; color: white; padding: 1rem; border-radius: 8px;
+                z-index: 400; font-size: 0.9rem;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3000);
+        }
+        
+        function updateAlertCount() {
+            // Update alert count in quick metrics
+            fetch('/api/mobile-data')
+                .then(response => response.json())
+                .then(data => {
+                    updateQuickMetrics(data.quick_metrics);
+                });
+        }
+        
+        // Offline support
+        function initializeOfflineSupport() {
+            // Listen for online/offline events
+            window.addEventListener('online', function() {
+                setConnectionStatus(true);
+            });
+            
+            window.addEventListener('offline', function() {
+                setConnectionStatus(false);
+            });
+        }
+        
+        function syncOfflineActions() {
+            if (offlineActions.length === 0) return;
+            
+            fetch('/api/offline-sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({actions: offlineActions})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    offlineActions = [];
+                    showOfflineMessage(`Synced ${data.processed_items} actions`);
+                }
+            });
+        }
+        
+        // Touch event optimization
+        function addTouchEventListeners() {
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
+            // Add haptic feedback for touch interactions
+            document.addEventListener('touchstart', function(event) {
+                // Simple vibration feedback on touch
+                if (navigator.vibrate) {
+                    navigator.vibrate(10);
+                }
+            });
+        }
+        
+        // Placeholder functions for additional features
+        function viewAlertDetails(alertId) {
+            showOfflineMessage('Alert details feature coming soon');
+        }
+        
+        function postponeTask(taskId) {
+            showOfflineMessage('Task postponement feature coming soon');
+        }
+    </script>
+</body>
+</html>
